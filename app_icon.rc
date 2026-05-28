@@ -1,4 +1,4 @@
-// Send2Pad 资源文件
+// File Transfer 资源文件
 #include <windows.h>
 
 // 应用程序图标（设置为程序默认图标，ID 101）

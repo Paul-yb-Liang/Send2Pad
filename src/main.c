@@ -1,4 +1,4 @@
-/* 主程序入口 — Send2Pad C 重写 */
+/* 主程序入口 — File Transfer C 重写 */
 /* 步骤 5：完整流程 — 拖放文件 → HTTP 服务 → QR 码 → GUI → 弹窗 → 清理 */
 
 #include <windows.h>
@@ -115,7 +115,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
                     L"\n  %d. %s", i + 1, allIPs[i]);
             }
             pos += _snwprintf(msg + pos, 1024 - pos,
-                L"\n\n如果 iPad 无法连接，请检查电脑是否连接了正确的网络。");
+                L"\n\n如果设备无法连接，请检查电脑是否连接了正确的网络。");
             ShowInfo(L"网卡信息", msg);
         }
     }
@@ -193,10 +193,10 @@ error_generic:
     if (listenSock != INVALID_SOCKET)
         closesocket(listenSock);
     CleanupAndExit();
-    ShowError(L"Send2Pad", L"初始化失败，请重试。");
+    ShowError(L"File Transfer", L"初始化失败，请重试。");
     return 1;
 
 error_no_file:
-    ShowError(L"Send2Pad", L"请将文件拖到此程序上运行！");
+    ShowError(L"File Transfer", L"请将文件拖到此程序上运行！");
     return 1;
 }

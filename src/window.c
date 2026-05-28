@@ -30,7 +30,7 @@ WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             /* 创建顶部状态标签 */
             g_hStatusLabel = CreateWindowW(L"STATIC",
-                L"📲 请用 iPad 相机扫码下载...",
+                L"📲 请扫码下载文件...",
                 WS_CHILD | WS_VISIBLE | SS_CENTER,
                 0, 10, WINDOW_CLIENT_W, STATUS_H,
                 hwnd, NULL, hInst, NULL);
@@ -88,18 +88,8 @@ WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         case WM_HTTP_DONE:
         {
-            /* 文件传输完成 */
-            UpdateWindow(hwnd);
-            SetWindowTextW(g_hStatusLabel, L"✅ 文件已发送！");
-
-            /* 弹出确认对话框 */
-            MessageBoxW(hwnd,
-                L"文件成功发送到 iPad？",
-                L"传输结束",
-                MB_YESNO | MB_ICONQUESTION | MB_SETFOREGROUND);
-
-            /* 无论是/否都关闭窗口 */
-            DestroyWindow(hwnd);
+            /* 文件传输完成，更新状态但不关闭窗口，支持重复扫码 */
+            SetWindowTextW(g_hStatusLabel, L"✅ 文件已发送！可继续扫码传输。");
             return 0;
         }
 
@@ -124,7 +114,7 @@ RegisterAppClass(HINSTANCE hInst)
 {
     WNDCLASSEXW wc = {0};
     wc.cbSize        = sizeof(WNDCLASSEXW);
-    wc.lpszClassName = L"Send2PadWndClass";
+    wc.lpszClassName = L"FileTransferWndClass";
     wc.lpfnWndProc   = WndProc;
     wc.hInstance      = hInst;
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -143,8 +133,8 @@ CreateMainWindow(HINSTANCE hInst, HBITMAP hQRBmp, const WCHAR *url)
     DWORD style = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
     AdjustWindowRect(&rc, style, FALSE);
 
-    HWND hwnd = CreateWindowW(L"Send2PadWndClass",
-                               L"Send to iPad",
+    HWND hwnd = CreateWindowW(L"FileTransferWndClass",
+                               L"File Transfer",
                                style,
                                CW_USEDEFAULT, CW_USEDEFAULT,
                                rc.right - rc.left,

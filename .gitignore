@@ -3,6 +3,7 @@
 *.o
 *.obj
 *.res
+*.bak
 
 # IDE/Editor
 .vscode/

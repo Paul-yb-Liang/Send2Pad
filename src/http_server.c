@@ -172,12 +172,16 @@ HandleOneRequest(SOCKET clientSock, HttpServerCtx *ctx)
     /* 发送文件内容（64KB buffer 流式发送） */
     char buf[65536];
     DWORD bytesRead;
-    while (ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead > 0) {
+    int sendFailed = 0;
+    while (!sendFailed &&
+           ReadFile(hFile, buf, sizeof(buf), &bytesRead, NULL) && bytesRead > 0) {
         int sent = 0;
         while (sent < (int)bytesRead) {
             int n = send(clientSock, buf + sent, bytesRead - sent, 0);
-            if (n <= 0)
+            if (n <= 0) {
+                sendFailed = 1;
                 break;
+            }
             sent += n;
         }
     }
@@ -190,10 +194,7 @@ HandleOneRequest(SOCKET clientSock, HttpServerCtx *ctx)
         PostMessageW(ctx->hwnd, WM_HTTP_DONE, 0, 0);
     }
 
-    /* 关闭监听 socket（不再接受新请求） */
-    closesocket(ctx->listenSock);
-    ctx->listenSock = INVALID_SOCKET;
-
+    /* 不关闭监听 socket，保持服务运行以支持重复扫码 */
     return TRUE;
 }
 
@@ -203,28 +204,35 @@ HttpThreadProc(LPVOID lpParam)
     HttpServerCtx *ctx = (HttpServerCtx *)lpParam;
 
     /* 开始监听 */
-    if (listen(ctx->listenSock, 1) != 0) {
+    if (listen(ctx->listenSock, 5) != 0) {
         closesocket(ctx->listenSock);
         return 1;
     }
 
-    /* 循环 accept，直到文件成功发送 */
+    /* 循环 accept，直到窗口销毁关闭 listenSock */
     while (ctx->listenSock != INVALID_SOCKET) {
         SOCKET clientSock = accept(ctx->listenSock, NULL, NULL);
         if (clientSock == INVALID_SOCKET) {
-            /* 可能是 listenSock 已被关闭（文件发送成功后的正常清理） */
+            /* listenSock 已被关闭（窗口销毁时清理） */
             break;
         }
 
+        /* 设置 3 秒发送/接收超时，防止客户端拒收时线程阻塞 */
+        DWORD timeout = 3000;
+        setsockopt(clientSock, SOL_SOCKET, SO_SNDTIMEO,
+                   (const char *)&timeout, sizeof(timeout));
+        setsockopt(clientSock, SOL_SOCKET, SO_RCVTIMEO,
+                   (const char *)&timeout, sizeof(timeout));
+
         BOOL delivered = HandleOneRequest(clientSock, ctx);
 
-        /* HandleOneRequest 在文件成功发送后会关闭 listenSock */
-        /* 如果没成功（404/405），socket 已关闭但 listenSock 还在，继续循环 */
-        if (delivered)
-            break;
-
-        /* 404/405 或其他错误：关闭客户端 socket，继续 accept */
-        closesocket(clientSock);
+        if (delivered) {
+            /* 成功：clientSock 已在 HandleOneRequest 内部关闭 */
+            /* 继续等待下一个连接（支持重复扫码） */
+        } else {
+            /* 失败：关闭客户端 socket，继续 accept */
+            closesocket(clientSock);
+        }
     }
 
     /* 确保监听 socket 关闭 */

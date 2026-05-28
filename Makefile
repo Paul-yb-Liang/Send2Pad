@@ -1,4 +1,4 @@
-# Makefile — Send2Pad C 版编译脚本
+# Makefile — File Transfer C 版编译脚本
 # 用法：make all  或  make clean
 # 环境：MinGW-w64 (Git Bash / MSYS2)
 
@@ -8,7 +8,7 @@ CFLAGS  = -O1 -s -Wall -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN \
           -DMAJOR_VERSION=4 -DMINOR_VERSION=1 -DMICRO_VERSION=1 -DVERSION='"4.1.1"' \
           -Iinclude -Ivendor/libqrencode-4.1.1
 LDFLAGS = -mwindows -lws2_32 -lgdi32 -luser32 -lshell32 -lshlwapi -liphlpapi
-TARGET  = Send2Pad.exe
+TARGET  = FileTransfer.exe
 RES_OBJ = app_icon.o
 
 # 源文件
@@ -43,6 +43,7 @@ $(TARGET): $(CSRCS) $(QRCS) $(RES_OBJ)
 	-strip $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(RES_OBJ)
+	if exist $(TARGET) del /f $(TARGET)
+	if exist $(RES_OBJ) del /f $(RES_OBJ)
 
 .PHONY: all clean
